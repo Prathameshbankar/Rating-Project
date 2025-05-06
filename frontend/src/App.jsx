@@ -9,6 +9,7 @@ import StoreOwnerDashboard from './pages/StoreOwnerDashboard';
 import Navbar from './componants/Navbar';
 import AdminRoutes from './routes/AdminRoutes';
 import UpdatePassword from './pages/UpdatePassword';
+import ForgotPassword from './pages/ForgotPassword';
 
 const App = () => {
   return (
@@ -21,7 +22,8 @@ const App = () => {
           <Route path="/signup" element={<Signup />} />
           <Route path="/user" element={<UserDashboard />} />
           <Route path="/store" element={<StoreOwnerDashboard />} />
-          <Route path="/forgot-password" element={<UpdatePassword />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
           {/* Admin Routes */}
           <Route path="/admin/*" element={<AdminRoutes />} />
         </Routes>

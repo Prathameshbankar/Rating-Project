@@ -38,7 +38,95 @@ const login = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const { identifier } = req.body;
+
+    // Check if identifier is email or username
+    const isEmail = identifier.includes('@');
+    let user;
+
+    if (isEmail) {
+      user = await User.findUserByEmail(identifier);
+    } else {
+      user = await User.findUserByUsername(identifier);
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this username or email'
+      });
+    }
+
+    // If user exists, return success message
+    res.json({
+      success: true,
+      message: 'Account verified. Please contact the administrator to reset your password.'
+    });
+  } catch (error) {
+    console.error('Error in forgot password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing forgot password request'
+    });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { identifier, newPassword } = req.body;
+
+    if (!identifier || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Identifier and new password are required'
+      });
+    }
+
+    // Check if identifier is email or username
+    const isEmail = identifier.includes('@');
+    let user;
+
+    if (isEmail) {
+      user = await User.findUserByEmail(identifier);
+    } else {
+      user = await User.findUserByUsername(identifier);
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this username or email'
+      });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the user's password
+    const updatedUser = await User.updatePassword(user.id, hashedPassword);
+    
+    if (!updatedUser) {
+      throw new Error('Failed to update password');
+    }
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. Please login with your new password.'
+    });
+  } catch (error) {
+    console.error('Error in reset password:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error resetting password'
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
+  forgotPassword,
+  resetPassword
 };

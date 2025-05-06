@@ -28,6 +28,11 @@ const findUserByEmail = async (email) => {
   return result.rows[0];
 };
 
+const findUserByUsername = async (username) => {
+  const result = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+  return result.rows[0];
+};
+
 const findUserById = async (id) => {
   const result = await db.query('SELECT * FROM users WHERE id = $1', [id]);
   return result.rows[0];
@@ -38,10 +43,24 @@ const getAllUsers = async () => {
   return result.rows;
 };
 
+const getAdmins = async () => {
+  const result = await db.query("SELECT * FROM users WHERE role = 'admin' ORDER BY id");
+  return result.rows;
+};
+
+const updatePassword = async (userId, hashedPassword) => {
+  const query = 'UPDATE users SET password = $1 WHERE id = $2 RETURNING *';
+  const result = await db.query(query, [hashedPassword, userId]);
+  return result.rows[0];
+};
+
 module.exports = {
   createUserTable,
   createUser,
   findUserByEmail,
+  findUserByUsername,
   findUserById,
-  getAllUsers, // ✅ Export the new method
+  getAllUsers,
+  getAdmins,
+  updatePassword
 };
