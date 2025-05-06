@@ -15,7 +15,7 @@ const Navbar = () => {
   return (
     <nav className="bg-slate-900 p-4">
       <div className="flex justify-between items-center">
-        <Link to="/" className="text-white text-lg font-semibold">Rating System</Link>
+        <Link to="" className="text-white text-lg font-semibold">Rating System</Link>
 
         <div>
           {user ? (

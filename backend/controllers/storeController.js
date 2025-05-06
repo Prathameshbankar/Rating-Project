@@ -87,7 +87,36 @@ const addStore = async (req, res) => {
   }
 };
 
+const getStoresByOwner = async (req, res) => {
+  try {
+    const owner_id = req.user.id;
+    const stores = await Store.getStoresByOwnerId(owner_id);
+    
+    const formattedStores = stores.map(store => ({
+      id: store.id,
+      name: store.name,
+      description: store.description,
+      location: store.location,
+      owner: store.owner_name,
+      created_at: store.created_at
+    }));
+
+    res.json({
+      success: true,
+      stores: formattedStores
+    });
+  } catch (error) {
+    console.error('Error in getStoresByOwner:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching stores',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   getStores,
   addStore,
+  getStoresByOwner
 };

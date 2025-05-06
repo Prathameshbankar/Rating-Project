@@ -42,9 +42,21 @@ const getStoreById = async (id) => {
   return result.rows[0];
 };
 
+const getStoresByOwnerId = async (owner_id) => {
+  const result = await db.query(`
+    SELECT s.*, u.username as owner_name 
+    FROM stores s 
+    LEFT JOIN users u ON s.owner_id = u.id 
+    WHERE s.owner_id = $1
+    ORDER BY s.created_at DESC
+  `, [owner_id]);
+  return result.rows;
+};
+
 module.exports = {
   createStoreTable,
   createStore,
   getAllStores,
   getStoreById,
+  getStoresByOwnerId
 };
