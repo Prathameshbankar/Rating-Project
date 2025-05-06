@@ -1,51 +1,103 @@
 import React, { useState, useEffect } from 'react';
+import api from '../api/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const StoreListings = ({ searchTerm, userRatings, setUserRatings }) => {
   const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { getToken } = useAuth();
 
   useEffect(() => {
-    // Fetch the store data from the backend or mock data
     const fetchStores = async () => {
-      const fetchedStores = [
-        { id: 1, name: 'Store A', address: '123 Main St', rating: 4.5 },
-        { id: 2, name: 'Store B', address: '456 Oak Rd', rating: 3.8 },
-        { id: 3, name: 'Store C', address: '789 Pine Ln', rating: 4.2 },
-      ];
-      setStores(fetchedStores);
+      try {
+        setLoading(true);
+        const response = await api.get('/stores');
+        if (response.data.success) {
+          setStores(response.data.stores);
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch stores');
+        }
+      } catch (error) {
+        console.error('Error fetching stores:', error);
+        setError(error.response?.data?.message || 'Failed to fetch stores');
+      } finally {
+        setLoading(false);
+      }
     };
     
     fetchStores();
   }, []);
 
+  const handleRatingChange = async (storeId, rating) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        setError('Please log in to rate stores');
+        return;
+      }
+
+      const response = await api.post(
+        `/ratings/${storeId}`,
+        { rating },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setUserRatings(prevRatings => ({
+          ...prevRatings,
+          [storeId]: rating
+        }));
+      } else {
+        throw new Error(response.data.message || 'Failed to submit rating');
+      }
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      setError(error.response?.data?.message || 'Failed to submit rating');
+    }
+  };
+
+  const renderStars = (rating) => {
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, index) => (
+          <span
+            key={index}
+            className={`text-xl ${
+              index < fullStars
+                ? 'text-yellow-400'
+                : index === fullStars && halfStar
+                ? 'text-yellow-400 opacity-50'
+                : 'text-gray-300'
+            }`}
+          >
+            ★
+          </span>
+        ))}
+        <span className="ml-2 text-sm text-gray-600">({rating.toFixed(1)})</span>
+      </div>
+    );
+  };
+
   const filteredStores = stores.filter(store =>
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    store.address.toLowerCase().includes(searchTerm.toLowerCase())
+    store.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleRatingChange = (storeId, rating) => {
-    setUserRatings(prevRatings => ({
-      ...prevRatings,
-      [storeId]: rating, // Update or add the rating for the given store
-    }));
-  };
+  if (loading) {
+    return <div className="text-center py-4">Loading stores...</div>;
+  }
 
-  // Function to render stars for rating
-  const renderStars = (rating) => {
-    const fullStars = Math.floor(rating); // Number of full stars
-    const halfStar = rating % 1 >= 0.5; // Check for half-star
-
-    const stars = [];
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
-        stars.push('★'); // Full star
-      } else if (i === fullStars && halfStar) {
-        stars.push('☆'); // Half star
-      } else {
-        stars.push('☆'); // Empty star
-      }
-    }
-    return stars.join(''); // Join array into a string of stars
-  };
+  if (error) {
+    return <div className="text-red-500 text-center py-4">{error}</div>;
+  }
 
   return (
     <div>
@@ -53,29 +105,43 @@ const StoreListings = ({ searchTerm, userRatings, setUserRatings }) => {
       {filteredStores.length > 0 ? (
         <div className="space-y-4">
           {filteredStores.map((store) => (
-            <div key={store.id} className="bg-white shadow-md p-4 rounded-lg">
-              <h3 className="text-lg font-semibold">{store.name}</h3>
-              <p className="text-gray-600">{store.address}</p>
-             
-              <p>Your Rating: {renderStars(userRatings[store.id] || 0)}</p>
+            <div key={store.id} className="bg-white shadow-md p-6 rounded-lg">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-semibold">{store.name}</h3>
+                  <p className="text-gray-600 mt-1">{store.location}</p>
+                  {store.description && (
+                    <p className="text-gray-500 mt-2">{store.description}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Owner: {store.owner}</p>
+                </div>
+              </div>
 
-              {/* Rating Buttons (Stars) */}
-              <div className="mt-4 flex gap-4">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <button
-                    key={rating}
-                    className={`p-2 rounded-lg ${userRatings[store.id] === rating ? 'bg-blue-600' : 'bg-gray-300'}`}
-                    onClick={() => handleRatingChange(store.id, rating)}
-                  >
-                    {rating} ★
-                  </button>
-                ))}
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">Your Rating:</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => handleRatingChange(store.id, rating)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        userRatings[store.id] === rating
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 hover:bg-gray-300'
+                      }`}
+                    >
+                      {rating} ★
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <p>No stores found matching your search criteria.</p>
+        <p className="text-center text-gray-500">No stores found matching your search criteria.</p>
       )}
     </div>
   );

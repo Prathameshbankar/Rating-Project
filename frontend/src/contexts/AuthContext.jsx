@@ -49,8 +49,19 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['Authorization'];
   };
 
+  const getToken = () => {
+    return localStorage.getItem('token');
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      signup, 
+      logout,
+      getToken 
+    }}>
       {children}
     </AuthContext.Provider>
   );

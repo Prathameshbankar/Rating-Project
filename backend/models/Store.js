@@ -6,6 +6,7 @@ const createStoreTable = async () => {
       id SERIAL PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       description TEXT,
+      location VARCHAR(255),
       owner_id INTEGER REFERENCES users(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -13,21 +14,31 @@ const createStoreTable = async () => {
   await db.query(queryText);
 };
 
-const createStore = async (name, description, owner_id) => {
+const createStore = async (name, description, location, owner_id) => {
   const result = await db.query(
-    'INSERT INTO stores (name, description, owner_id) VALUES ($1, $2, $3) RETURNING *',
-    [name, description, owner_id]
+    'INSERT INTO stores (name, description, location, owner_id) VALUES ($1, $2, $3, $4) RETURNING *',
+    [name, description, location, owner_id]
   );
   return result.rows[0];
 };
 
 const getAllStores = async () => {
-  const result = await db.query('SELECT * FROM stores ORDER BY created_at DESC');
+  const result = await db.query(`
+    SELECT s.*, u.username as owner_name 
+    FROM stores s 
+    LEFT JOIN users u ON s.owner_id = u.id 
+    ORDER BY s.created_at DESC
+  `);
   return result.rows;
 };
 
 const getStoreById = async (id) => {
-  const result = await db.query('SELECT * FROM stores WHERE id = $1', [id]);
+  const result = await db.query(`
+    SELECT s.*, u.username as owner_name 
+    FROM stores s 
+    LEFT JOIN users u ON s.owner_id = u.id 
+    WHERE s.id = $1
+  `, [id]);
   return result.rows[0];
 };
 

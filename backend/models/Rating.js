@@ -27,6 +27,18 @@ const getRatingsByStoreId = async (store_id) => {
   return result.rows;
 };
 
+const getRatingsByUserId = async (user_id) => {
+  const result = await db.query(
+    `SELECT r.*, s.name as store_name, s.location as store_location 
+     FROM ratings r 
+     JOIN stores s ON r.store_id = s.id 
+     WHERE r.user_id = $1 
+     ORDER BY r.created_at DESC`,
+    [user_id]
+  );
+  return result.rows;
+};
+
 const getAllRatings = async () => {
   const result = await db.query('SELECT * FROM ratings ORDER BY created_at DESC');
   return result.rows;
@@ -36,5 +48,6 @@ module.exports = {
   createRatingTable,
   createRating,
   getRatingsByStoreId,
+  getRatingsByUserId,
   getAllRatings
 };

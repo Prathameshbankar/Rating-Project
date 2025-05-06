@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import api from '../../api/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -9,10 +9,12 @@ const AddEntity = () => {
     email: '',
     password: '',
     address: '',
+    location: '',
+    description: '',
     role: 'user', // only for users
   });
   const [message, setMessage] = useState('');
-  const { user, token } = useAuth();
+  const { user, getToken } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,6 +37,7 @@ const AddEntity = () => {
         setMessage('User created successfully');
       } else if (entityType === 'store') {
         // Create store
+        const token = getToken();
         if (!token) {
           setMessage('You must be logged in to add a store');
           return;
@@ -43,7 +46,8 @@ const AddEntity = () => {
           '/stores',
           {
             name: formData.name,
-            description: formData.address,
+            description: formData.description,
+            location: formData.location,
           },
           {
             headers: {
@@ -53,8 +57,17 @@ const AddEntity = () => {
         );
         setMessage('Store created successfully');
       }
-      setFormData({ name: '', email: '', password: '', address: '', role: 'user' });
+      setFormData({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        address: '', 
+        location: '',
+        description: '',
+        role: 'user' 
+      });
     } catch (error) {
+      console.error('Error submitting form:', error);
       setMessage(error.response?.data?.message || 'Error submitting form');
     }
   };
@@ -92,39 +105,24 @@ const AddEntity = () => {
           name="name"
           placeholder="Name"
           value={formData.name}
-         
+          onChange={handleChange}
           maxLength={60}
-          onChange={handleChange}
           required
           className="w-full px-3 py-2 border rounded"
         />
 
-        <input
-          type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          className="w-full px-3 py-2 border rounded"
-        />
-
-      
-
-        <input
-          type="text"
-          name="address"
-          placeholder="Address"
-          value={formData.address}
-          maxLength={400}
-          onChange={handleChange}
-          required={entityType === 'store'}
-         
-          className="w-full px-3 py-2 border rounded"
-        />
-
-        {entityType === 'user' && (
+        {entityType === 'user' ? (
           <>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border rounded"
+            />
+
             <input
               type="password"
               name="password"
@@ -133,6 +131,17 @@ const AddEntity = () => {
               onChange={handleChange}
               minLength={3}
               maxLength={16}
+              required
+              className="w-full px-3 py-2 border rounded"
+            />
+
+            <input
+              type="text"
+              name="address"
+              placeholder="Address"
+              value={formData.address}
+              maxLength={400}
+              onChange={handleChange}
               required
               className="w-full px-3 py-2 border rounded"
             />
@@ -147,6 +156,27 @@ const AddEntity = () => {
               <option value="admin">Admin</option>
               <option value="store">Store Owner</option>
             </select>
+          </>
+        ) : (
+          <>
+            <input
+              type="text"
+              name="location"
+              placeholder="Location"
+              value={formData.location}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border rounded"
+            />
+
+            <textarea
+              name="description"
+              placeholder="Store Description"
+              value={formData.description}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border rounded"
+              rows="4"
+            />
           </>
         )}
 
