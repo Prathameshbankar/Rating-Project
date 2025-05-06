@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -14,40 +14,68 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [statsRes, usersRes, adminsRes, storesRes] = await Promise.all([
+        api.get('/api/admin/stats'),
+        api.get('/api/admin/users'),
+        api.get('/api/admin/admins'),
+        api.get('/api/admin/stores')
+      ]);
+
+      setStats(statsRes.data);
+      setUsers(usersRes.data);
+      setAdmins(adminsRes.data);
+      setStores(storesRes.data);
+    } catch (err) {
+      console.error('Dashboard data fetch error:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message;
+      setError(`Failed to fetch dashboard data: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, usersRes, adminsRes, storesRes] = await Promise.all([
-          axios.get('/api/admin/stats', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-          }),
-          axios.get('/api/admin/users', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-          }),
-          axios.get('/api/admin/admins', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-          }),
-          axios.get('/api/admin/stores', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-          })
-        ]);
-
-        setStats(statsRes.data);
-        setUsers(usersRes.data);
-        setAdmins(adminsRes.data);
-        setStores(storesRes.data);
-      } catch (err) {
-        console.error('Detailed error:', err);
-        const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message;
-        setError(`Failed to fetch dashboard data: ${errorMessage}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
+
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+      await api.delete(`/api/admin/users/${userId}`);
+      
+      // Update the users list after successful deletion
+      setUsers(users.filter(user => user.id !== userId));
+      
+      // Update stats
+      setStats(prevStats => ({
+        ...prevStats,
+        totalUsers: prevStats.totalUsers - 1
+      }));
+
+      // If the deleted user was an admin, update admins list
+      const deletedUser = users.find(user => user.id === userId);
+      if (deletedUser?.role === 'admin') {
+        setAdmins(admins.filter(admin => admin.id !== userId));
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message;
+      setError(`Failed to delete user: ${errorMessage}`);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   if (loading) return <div className="p-6 text-center">Loading dashboard data...</div>;
   if (error) return (
@@ -66,7 +94,7 @@ const AdminDashboard = () => {
     const columns = {
       users: ['ID', 'Name', 'Email', 'Role', 'Actions'],
       admins: ['ID', 'Name', 'Email', 'Role', 'Actions'],
-      stores: ['ID', 'Name', 'Owner', 'Location', 'Actions']
+      stores: ['ID', 'Name', 'Owner', 'Location', 'Description', 'Actions']
     };
 
     return (
@@ -86,18 +114,49 @@ const AdminDashboard = () => {
               <tr key={item.id}>
                 <td className="px-6 py-4 whitespace-nowrap">{item.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{item.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{item.email}</td>
                 {type === 'stores' ? (
                   <>
-                    <td className="px-6 py-4 whitespace-nowrap">{item.owner}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-medium text-gray-900">{item.owner_name}</span>
+                      <span className="text-sm text-gray-500 ml-2">(ID: {item.owner_id})</span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">{item.location}</td>
+                    <td className="px-6 py-4">
+                      <p className="text-gray-600 line-clamp-2">{item.description || 'No description'}</p>
+                    </td>
                   </>
                 ) : (
-                  <td className="px-6 py-4 whitespace-nowrap">{item.role}</td>
+                  <>
+                    <td className="px-6 py-4 whitespace-nowrap">{item.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{item.role}</td>
+                  </>
                 )}
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-                  <button className="text-red-600 hover:text-red-900">Delete</button>
+                  {type === 'stores' ? (
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => window.location.href = `/stores/${item.id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        View
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(item.id)}
+                        disabled={deleteLoading}
+                        className={`text-red-600 hover:text-red-900 ${deleteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {deleteLoading ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => handleDeleteUser(item.id)}
+                      disabled={deleteLoading}
+                      className={`text-red-600 hover:text-red-900 ${deleteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {deleteLoading ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
