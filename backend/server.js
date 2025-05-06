@@ -7,12 +7,12 @@ const port = process.env.PORT || 5000;
 const authRoutes = require('./routes/authRoutes');
 const storeRoutes = require('./routes/storeRoutes');
 const ratingRoutes = require('./routes/ratingRoutes');
+const userRoutes = require('./routes/userRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const { createUserTable } = require('./models/User');
 const { createStoreTable } = require('./models/Store');
 const { createRatingTable } = require('./models/Rating');
-
-const userRoutes = require('./routes/userRoutes');
 
 app.use(cors());
 app.use(express.json());
@@ -22,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.send('Rating System Backend is running');
