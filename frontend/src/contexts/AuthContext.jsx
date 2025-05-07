@@ -33,9 +33,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (username, email, password) => {
+  const signup = async (username, email, password, role) => {
     try {
-      const response = await api.post('/auth/signup', { username, email, password });
+      const response = await api.post('/auth/signup', { username, email, password, role });
       return { success: true, message: response.data.message };
     } catch (error) {
       return { success: false, message: error.response?.data?.message || 'Signup failed' };

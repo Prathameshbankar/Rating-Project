@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Signup = () => {
-  const [form, setForm] = useState({ username: '', email: '', password: '' });
+  const [form, setForm] = useState({ 
+    username: '', 
+    email: '', 
+    password: '',
+    role: 'user' // Default role
+  });
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const { signup } = useAuth();
@@ -16,11 +21,11 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    const result = await signup(form.username, form.email, form.password);
+    const result = await signup(form.username, form.email, form.password, form.role);
     if (result.success) {
       setSuccess(true);
       setTimeout(() => {
-        navigate('/login');
+        navigate('/');
       }, 2000); // Redirect after 2 seconds
     } else {
       setError(result.message);
@@ -59,6 +64,17 @@ const Signup = () => {
               className="border p-2 rounded w-full mb-4"
               required
             />
+            <select
+              name="role"
+              onChange={handleChange}
+              value={form.role}
+              className="border p-2 rounded w-full mb-4"
+              required
+            >
+              <option value="user">User</option>
+              <option value="store">Store Owner</option>
+              <option value="admin">Admin</option>
+            </select>
             <button type="submit" className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
               Register
             </button>
